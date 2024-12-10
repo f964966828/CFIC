@@ -55,7 +55,7 @@ def skip_decoding(input_ids, sentence_ids_list, max_length=256):
     for sentence_ids in sentence_ids_list:
         sentence = tokenizer.decode(sentence_ids[0], skip_special_token=False)
         idx = find_subarray_index(article, sentence)
-        sub_article_ids = tokenizer(article[idx:], return_tensors="pt", max_length=max_length).input_ids.cuda()
+        sub_article_ids = tokenizer(article[idx:], return_tensors="pt", max_length=max_length, truncation=True).input_ids.cuda()
         
         sentence_input_ids = torch.cat([input_ids, sub_article_ids], dim=-1)
         with torch.no_grad():
@@ -63,8 +63,8 @@ def skip_decoding(input_ids, sentence_ids_list, max_length=256):
         
         probs = torch.softmax(outputs.logits[0, -len(sub_article_ids[0]):, :], dim=-1)
         eos_idx = torch.argmax(probs[:, tokenizer.eos_token_id])
-        sentence = tokenizer.decode(sub_article_ids[0, :eos_idx], skip_special_token=False)        
-        intervals.append((idx, idx + len(sentence)))
+        evidence_sentence = tokenizer.decode(sub_article_ids[0, :eos_idx], skip_special_token=False)        
+        intervals.append((idx, idx + len(evidence_sentence)))
     return intervals
 
 def merge_interval(intervals):
